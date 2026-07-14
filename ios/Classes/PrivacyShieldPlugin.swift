@@ -144,13 +144,29 @@ public class PrivacyShieldPlugin: NSObject, FlutterPlugin, FlutterStreamHandler 
       removeOverlay()
   }
   
+  private var privacyWindow: UIWindow?
+
   private func showOverlay() {
-      if overlayView != nil { return }
+      if privacyWindow != nil { return }
       
-      let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow })
-      guard let window = keyWindow else { return }
+      var windowScene: UIWindowScene?
+      if #available(iOS 13.0, *) {
+          windowScene = UIApplication.shared.connectedScenes
+              .first(where: { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }) as? UIWindowScene
+      }
       
-      let view = UIView(frame: window.bounds)
+      let window: UIWindow
+      if #available(iOS 13.0, *), let scene = windowScene {
+          window = UIWindow(windowScene: scene)
+      } else {
+          window = UIWindow(frame: UIScreen.main.bounds)
+      }
+      
+      // Use alert + 1 to ensure it covers everything including keyboards and alerts
+      window.windowLevel = .alert + 1
+      
+      let viewController = UIViewController()
+      let view = viewController.view!
       view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
       
       switch privacyMode {
@@ -159,6 +175,7 @@ public class PrivacyShieldPlugin: NSObject, FlutterPlugin, FlutterStreamHandler 
       case "color":
           view.backgroundColor = privacyColor
       case "blur":
+          view.backgroundColor = .clear
           let blurEffect = UIBlurEffect(style: .dark)
           let blurView = UIVisualEffectView(effect: blurEffect)
           blurView.frame = view.bounds
@@ -170,13 +187,14 @@ public class PrivacyShieldPlugin: NSObject, FlutterPlugin, FlutterStreamHandler 
           view.backgroundColor = .black
       }
       
-      overlayView = view
-      window.addSubview(view)
+      window.rootViewController = viewController
+      window.isHidden = false
+      privacyWindow = window
   }
   
   private func removeOverlay() {
-      overlayView?.removeFromSuperview()
-      overlayView = nil
+      privacyWindow?.isHidden = true
+      privacyWindow = nil
   }
   
   deinit {

@@ -16,8 +16,9 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry.UserLeaveHintListener
 
-class PrivacyShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Application.ActivityLifecycleCallbacks {
+class PrivacyShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Application.ActivityLifecycleCallbacks, UserLeaveHintListener {
 
     private lateinit var channel: MethodChannel
     private var activity: Activity? = null
@@ -91,17 +92,21 @@ class PrivacyShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, App
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
         activity?.application?.registerActivityLifecycleCallbacks(this)
+        binding.addOnUserLeaveHintListener(this)
         applyScreenshotPolicy()
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
         activity?.application?.unregisterActivityLifecycleCallbacks(this)
         activity = null
+        // ActivityPluginBinding does not have a remove method for this in older versions, 
+        // it auto-clears on detach.
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activity = binding.activity
         activity?.application?.registerActivityLifecycleCallbacks(this)
+        binding.addOnUserLeaveHintListener(this)
         applyScreenshotPolicy()
     }
 
@@ -110,18 +115,28 @@ class PrivacyShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, App
         activity = null
     }
 
+    override fun onUserLeaveHint() {
+        if (isEnabled && activity != null) {
+            activity!!.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            showOverlay(activity!!)
+        }
+    }
+
     // Lifecycle Callbacks
     override fun onActivityCreated(act: Activity, savedInstanceState: Bundle?) {}
     override fun onActivityStarted(act: Activity) {}
 
     override fun onActivityResumed(act: Activity) {
         if (act == activity) {
+            applyScreenshotPolicy() // Restore normal policy
             removeOverlay()
         }
     }
 
     override fun onActivityPaused(act: Activity) {
         if (act == activity && isEnabled) {
+            // Apply FLAG_SECURE unconditionally when paused to hide the Recents preview
+            act.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
             showOverlay(act)
         }
     }
@@ -162,9 +177,12 @@ class PrivacyShieldPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, App
             else -> frameLayout.setBackgroundColor(Color.BLACK)
         }
 
-        frameLayout.elevation = 1000f // ensure it's on top
+        frameLayout.isClickable = true
         overlayView = frameLayout
         decorView.addView(overlayView)
+        overlayView?.bringToFront()
+        decorView.requestLayout()
+        decorView.invalidate()
     }
 
     private fun removeOverlay() {
