@@ -1,3 +1,5 @@
-## 0.0.1
+## 0.1.0
 
-* TODO: Describe initial release.
+* Initial release of the `privacy_shield` plugin.
+* Provides app switcher protection and screenshot prevention.
+* Includes `PrivacyShieldWidget` for Flutter-level blur.

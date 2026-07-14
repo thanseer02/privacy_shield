@@ -1,0 +1,7 @@
+.fvm/
+.idea/
+.vscode/
+.dart_tool/
+.github/
+build/
+*.iml
