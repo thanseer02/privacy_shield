@@ -4,12 +4,12 @@ import 'package:privacy_shield/privacy_shield.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await PrivacyShield.initialize(
     mode: PrivacyMode.black,
     preventScreenshots: false,
   );
-  
+
   runApp(const MyApp());
 }
 
@@ -30,7 +30,7 @@ class _MyAppState extends State<MyApp> {
       _currentMode = mode;
     });
   }
-  
+
   Future<void> _toggleSecure() async {
     final newSecure = !_isSecure;
     // Re-initialize to update the screenshot policy (Android only)

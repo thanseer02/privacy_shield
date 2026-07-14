@@ -14,7 +14,8 @@ export 'src/privacy_mode.dart';
 class PrivacyShield {
   /// Stream that emits an event whenever the user takes a screenshot.
   /// Note: This is currently only supported on iOS.
-  static Stream<void> get onScreenshotTaken => PrivacyShieldEventChannel.onScreenshotTaken;
+  static Stream<void> get onScreenshotTaken =>
+      PrivacyShieldEventChannel.onScreenshotTaken;
 
   /// Initializes the privacy shield with the given [mode] and options.
   static Future<void> initialize({
